@@ -1,7 +1,7 @@
 import torch
 import math
 import numpy as np
-from signed_sage_convlolution import SignedSAGEConvolutionBase, SignedSAGEConvolutionDeep, ListModule
+from signed_sage_convolution import SignedSAGEConvolutionBase, SignedSAGEConvolutionDeep, ListModule
 
 
 class SGC_LSTM(torch.nn.Module):
