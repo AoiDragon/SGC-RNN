@@ -27,30 +27,27 @@ class SGC_LSTM(torch.nn.Module):
 
     def setup_sgcn(self):
         """
-        搭建一个sgcn单元
-        :return: 正负两类的第一层和深层的aggregator
+        搭建sgcn
         """
         # 输入是28*1（7*4，3种一维邻居的聚合结果7，一共21，自己7，拼接后28）的向量
-        positive_base_aggregator = SignedSAGEConvolutionBase(self.config.embedding_size * 4, 32).to(self.device)
-        negative_base_aggregator = SignedSAGEConvolutionBase(self.config.embedding_size * 4, 32).to(self.device)
+        self.positive_base_aggregator = SignedSAGEConvolutionBase(self.config.embedding_size * 4, 32).to(self.device)
+        self.negative_base_aggregator = SignedSAGEConvolutionBase(self.config.embedding_size * 4, 32).to(self.device)
 
-        positive_aggregators = []
-        negative_aggregators = []
+        self.positive_aggregators = []
+        self.negative_aggregators = []
         for i in range(2):
             # 输入是32*7（6种+自己）输出暂定32*1
-            positive_aggregators.append(SignedSAGEConvolutionDeep(32 * 7,
-                                                                  32).to(self.device))
+            self.positive_aggregators.append(SignedSAGEConvolutionDeep(32 * 7, 32).to(self.device))
 
-            negative_aggregators.append(SignedSAGEConvolutionDeep(32 * 7,
-                                                                  32).to(self.device))
+            self.negative_aggregators.append(SignedSAGEConvolutionDeep(32 * 7, 32).to(self.device))
 
-        positive_aggregators = ListModule(*self.positive_aggregators)
-        negative_aggregators = ListModule(*self.negative_aggregators)
-
-        return positive_base_aggregator, negative_base_aggregator, positive_aggregators, negative_aggregators
+        self.positive_aggregators = ListModule(*self.positive_aggregators)
+        self.negative_aggregators = ListModule(*self.negative_aggregators)
 
     def setup_layers(self):
-        positive_base_aggregator, negative_base_aggregator, positive_aggregators, negative_aggregators = self.setup_sgcn()
+        # setup_sgcn只能生成满足一轮任务的sgcn，应该调用和游戏轮数相同次，每个游戏用的不一样
+        self.setup_sgcn()
+        # sgcn中未包含激活函数
 
     def forward(self, graphs):
         """
