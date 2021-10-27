@@ -38,7 +38,6 @@ class Avalon(torch.utils.data.Dataset):
             random.seed(1234)
             random.shuffle(list(files))
             for file in files:
-
                 filename = self.file_dir + str(file)
                 with open(filename, 'r', encoding="utf8") as f:
                     gameData = json.loads(f.read())

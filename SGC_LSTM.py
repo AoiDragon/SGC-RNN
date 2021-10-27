@@ -2,6 +2,7 @@ import torch
 import math
 import numpy as np
 from signed_sage_convolution import SignedSAGEConvolutionBase, SignedSAGEConvolutionDeep, ListModule
+from utils import initialize_embedding
 
 
 class SGC_LSTM(torch.nn.Module):
@@ -19,8 +20,7 @@ class SGC_LSTM(torch.nn.Module):
         # 参数对象
         self.device = device
         self.config = config
-
-        self.lstm_num = self.config.lstm_num
+        self.cell_num = self.config.cell_num
         self.lstm = []
 
         self.setup_layers()
@@ -46,8 +46,11 @@ class SGC_LSTM(torch.nn.Module):
 
     def setup_layers(self):
         # setup_sgcn只能生成满足一轮任务的sgcn，应该调用和游戏轮数相同次，每个游戏用的不一样
-        self.setup_sgcn()
         # sgcn中未包含激活函数
+        self.setup_sgcn()
+        for _ in range(self.cell_num):
+            self.lstm.append(torch.nn.LSTMCell(self.config.lstm_input_size, self.config.lstm_hidden_size))
+        self.lstm_list = ListModule(*self.lstm)
 
     def forward(self, graphs):
         """
@@ -55,6 +58,22 @@ class SGC_LSTM(torch.nn.Module):
         :param graphs:
         :return:
         """
-        mission_num = len(graphs)
-        for mission in graphs:
-            vote_num = len(mission)
+        # 先串行进行SGCN计算
+        for game in graphs:
+            for mission in game:
+                for vote in mission:
+                    # 生成初始嵌入
+                    player_num = vote["numberOfPlayers"]
+                    h_0 = []  # 初始嵌入
+                    for _ in range(player_num):
+                        h_0.append(initialize_embedding())
+
+                    # 进行第一层SGCN
+                    h_pos, h_neg = []
+                    # 第二层SGCN
+                # 对当前任务进行padding（填充一个全为-1的向量），获得一个5*n的向量
+            # 对当前游戏进行padding（将之前的向量cat起来），得到一个25*n的tensor
+            # LSTM也需要串行计算，将当前游戏的tensor送入其中
+            # 返回值是lstm最后一个有效timestep的输出，可以在for循环中设置一个保留最后结果的临时变量，边计算边更新
+
+
