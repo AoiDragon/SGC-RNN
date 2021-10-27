@@ -2,7 +2,7 @@ import torch
 import math
 import numpy as np
 from signed_sage_convolution import SignedSAGEConvolutionBase, SignedSAGEConvolutionDeep, ListModule
-from utils import initialize_embedding
+from utils import initialize_embedding, padding
 
 
 class SGC_LSTM(torch.nn.Module):
@@ -60,20 +60,34 @@ class SGC_LSTM(torch.nn.Module):
         """
         # 先串行进行SGCN计算
         for game in graphs:
+            game_embedding_list = []
             for mission in game:
+                mission_embedding_list = []  # 临时存储任务中每一轮投票的嵌入
                 for vote in mission:
                     # 生成初始嵌入
                     player_num = vote["numberOfPlayers"]
                     h_0 = []  # 初始嵌入
                     for _ in range(player_num):
-                        h_0.append(initialize_embedding())
+                        h_0.append(initialize_embedding(self.config.embedding_size))
 
                     # 进行第一层SGCN
-                    h_pos, h_neg = []
+                    h_pos, h_neg = [], []
+                    h_pos.append(torch.tanh(self.positive_base_aggregator(vote, "positive", h_0)))
+                    h_neg.append(torch.tanh(self.negative_base_aggregator(vote, "negative", h_0)))
+
                     # 第二层SGCN
-                # 对当前任务进行padding（填充一个全为-1的向量），获得一个5*n的向量
-            # 对当前游戏进行padding（将之前的向量cat起来），得到一个25*n的tensor
+                    for i in range(1, self.config.layer_num):
+                        self.h_pos.append(
+                            torch.tanh(self.positive_aggregators[i - 1](vote, "positive", h_pos[i - 1], h_neg[i - 1])))
+                        self.h_pos.append(
+                            torch.tanh(self.negative_aggregators[i - 1](vote, "negative", h_pos[i - 1], h_neg[i - 1])))
+                    # h_pos[i] 1*32
+                    mission_embedding_list.append(torch.cat((h_pos[-1], h_neg[-1]), 0))  # 1*64
+                # 对当前任务进行padding（填充一个全为-1的向量），获得一个5*64的向量
+                game_embedding_list.append(padding(mission_embedding_list, 5, 64)) # 5*64
+            # 对当前游戏进行padding（将之前的向量cat起来），得到一个25*64的tensor
+            game_embedding = padding(game_embedding_list, 25, 64)
+
             # LSTM也需要串行计算，将当前游戏的tensor送入其中
+
             # 返回值是lstm最后一个有效timestep的输出，可以在for循环中设置一个保留最后结果的临时变量，边计算边更新
-
-

@@ -10,6 +10,11 @@ def parameter_parser():
                         default=7,
                         help="嵌入的默认长度，默认值为10.0人局中的角色种类")
 
+    parser.add_argument('--layer_num',
+                        type=int,
+                        default=2,
+                        help="sgcn层数")
+
     parser.add_argument('--cell_num',
                         type=int,
                         default=25,

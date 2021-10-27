@@ -116,7 +116,7 @@ class SignedSAGEConvolution(torch.nn.Module):
         """
         # embedding_kind表示当前聚合的是正嵌入还是负嵌入
         # 保证了在每找到相应类型的角色时返回一个0向量
-        h = torch.zeros(size, 1)
+        h = torch.zeros(1, size)
         cnt = 0  # 某类角色人数
         for member in graph[role]:
             if member == player:
@@ -145,7 +145,7 @@ class SignedSAGEConvolutionBase(SignedSAGEConvolution):
             h_0 = feature[player]
             # 将所有类型的连接成1个向量，自己的嵌入放在最后
             for i in h_tmp:
-                h_0 = torch.cat((i, h_0), 0)
+                h_0 = torch.cat((i, h_0), 1)
             h = torch.matmul(h_0, self.weight)
             if self.bias is not None:
                 h = h + self.bias
@@ -190,7 +190,7 @@ class SignedSAGEConvolutionDeep(SignedSAGEConvolution):
                 h_tmp.append(self.aggregate(player, "Leader", graph, pos_feature, "negative", 32))  # 队长，负邻居，正嵌入
                 h_0 = neg_feature[player]
             for i in h_tmp:
-                h_0 = torch.cat((i, h_0), 0)
+                h_0 = torch.cat((i, h_0), 1)
             h = torch.matmul(h_0, self.weight)
             if self.bias is not None:
                 h = h + self.bias
