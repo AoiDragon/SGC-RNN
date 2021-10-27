@@ -22,8 +22,8 @@ def parameter_parser():
 
     parser.add_argument('--lstm_input_size',
                         type=int,
-                        default=9,
-                        help="lstm的输入大小，默认为9（角色种类7+任务成功与否+本轮是否参与任务）")
+                        default=66,
+                        help="lstm的输入大小，默认为66（SGCN正嵌入32+SGCN负嵌入32+任务额外信息2）")
 
     parser.add_argument('--lstm_hidden_size',
                         type=int,

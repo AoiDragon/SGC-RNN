@@ -36,15 +36,16 @@ for i, data in enumerate(data_loader):
     # 第一维为完整游戏记录，第二维为玩家真实身份，注意是一个batch的数据
     records = data[0]
     labels = data[1]
-
+    # break
     # 这里生成一个batch的图，送入模型
     # 模型中SGCN部分的forward一个一个算
     # 算完SGCN的部分后以batch送入LSTM
     graphs = generate_graph(records)                    # 一个batch中所有游戏的图
+
     # graphs[0]是一场游戏的图
     # graphs[0][0]是一轮任务的图
     # graphs[0][0][0]是一轮投票的图（字典形式）
-    model(graphs)
+    # model(graphs)
 
 
 

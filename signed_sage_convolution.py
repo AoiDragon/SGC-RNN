@@ -149,10 +149,10 @@ class SignedSAGEConvolutionBase(SignedSAGEConvolution):
             h = torch.matmul(h_0, self.weight)
             if self.bias is not None:
                 h = h + self.bias
-            # 这里是否需要归一化？
+            # dim=-1表示最内层
             if self.norm_embed:
-                h = F.normalize(h, p=2, dim=0)
-            res.append(h)
+                h = F.normalize(h, p=2, dim=-1)
+            res.append(torch.tanh(h))
         # res是所有玩家嵌入的列表
         return res
 
@@ -195,6 +195,6 @@ class SignedSAGEConvolutionDeep(SignedSAGEConvolution):
             if self.bias is not None:
                 h = h + self.bias
             if self.norm_embed:
-                h = F.normalize(h, p=2, dim=0)
-            res.append(h)
+                h = F.normalize(h, p=2, dim=-1)
+            res.append(torch.tanh(h))
         return res

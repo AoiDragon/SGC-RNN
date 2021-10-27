@@ -6,14 +6,16 @@ import scipy.stats as stats
 def generate_graph(records):
     """
     Generate player graph for every game.
-    :param record: Game record.
+    :param records: Game record.
     :return edges: Graph list.
     """
     G = []  # 存储一个batch中所有游戏的图
     for record in records:
         graphs = []  # 存储一次游戏中所有图的列表
         game = record['gameProcess']  # 当前游戏
+        print(record['missionHistory'])
         playerNum = record["numberOfPlayers"]  # 玩家人数
+        missionCount = 0
         for mission in game:  # 当前任务
             missionGraphs = []  # 存储一次任务中所有图的列表
             for vote in mission:  # 当前投票
@@ -21,7 +23,7 @@ def generate_graph(records):
                 voteResult = vote[1]  # 投票结果
                 # 存储当前投票结果对应的图的字典
                 voteGraph = {"numberOfPlayers": record["numberOfPlayers"], "positiveEdges": [], "negativeEdges": [],
-                             "Members": [], "nonMembers": []}
+                             "Members": [], "nonMembers": [], "missionResult": record['missionHistory'][missionCount]}
                 for k in range(playerNum):
                     player = role[k]
                     if player == "Member":  # 之后改一下数据集，让变量命名一致
@@ -44,7 +46,9 @@ def generate_graph(records):
                         else:
                             voteGraph["negativeEdges"].append([k, m])
                 missionGraphs.append(voteGraph)
+            missionCount += 1
             graphs.append(missionGraphs)
+        print(graphs)
         G.append(graphs)
     return G
 
@@ -81,3 +85,14 @@ def padding(p_size, e_size, mission_embedding_list):
             mission_embedding = torch.cat((mission_embedding, padding_tensor), 0)
     return mission_embedding
 
+
+def judge(h):
+    """
+    判断一个tensor是不是补充的（全是-1）
+    :param h: 待判断的tensor
+    :return:
+    """
+    for h_i in h:
+        if h_i != -1:
+            return False
+        return True
