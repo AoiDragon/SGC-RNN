@@ -7,8 +7,8 @@ def parameter_parser():
     # Model Configuration
     parser.add_argument('--embedding_size',
                         type=int,
-                        default=7,
-                        help="嵌入的默认长度，默认值为10.0人局中的角色种类")
+                        default=6,
+                        help="嵌入的默认长度，以标准角色配置中的数目相同")
 
     parser.add_argument('--layer_num',
                         type=int,
@@ -31,6 +31,10 @@ def parameter_parser():
                         help="lstm的隐藏层大小，默认为32")
 
     # Training Configuration
+    parser.add_argument('--device',
+                        type=str,
+                        default='cuda:0')
+
     parser.add_argument('--batch_size',
                         type=int,
                         default=32)
@@ -38,6 +42,9 @@ def parameter_parser():
     parser.add_argument('--epoch_num',
                         type=int,
                         default=200)
+    parser.add_argument('--learning_rate',
+                        type=float,
+                        default=0.01)
 
     # Directories
     parser.add_argument('--record_dir',
@@ -46,6 +53,6 @@ def parameter_parser():
 
     parser.add_argument('--data_dir',
                         type=str,
-                        default='./data/gameRecord/')
+                        default='./data/simplifiedGameRecord/')
 
     return parser.parse_args()

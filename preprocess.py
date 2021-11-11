@@ -1,6 +1,7 @@
 import json
 import ijson
 import numpy as np
+from utils import list_add
 
 
 def preprocess(file_dir, record_dir):
@@ -8,42 +9,54 @@ def preprocess(file_dir, record_dir):
         gameRecords = list(ijson.items(f, '', multiple_values=True))
 
     count = 0
+    fileCount = 0
     flag = 0
     for i in range(len(gameRecords)):
         for j in range(len(gameRecords[i])):
-
+            count += 1
             # 简化后的游戏记录
             simplifiedRecord = {}
             record = gameRecords[i][j]
-            count += 1
-
+            # 只保留标准角色配置
+            if record['roles'] != ['Merlin', 'Percival', 'Assassin', 'Morgana']:
+                continue
             # 缺少玩家c信息
             if count == 3875 and not flag:
-                count -= 1
                 flag = 1
                 continue
-
-            filename = record_dir + str(count) + '.json'
+            fileCount += 1
+            filename = record_dir + str(fileCount) + '.json'
 
             # 玩家数量
             simplifiedRecord['numberOfPlayers'] = record['numberOfPlayers']
 
             # 角色种类
             roles = record['roles']
+            roles.insert(0, 'Spy')
             roles.insert(0, 'Resistance')
             simplifiedRecord['roles'] = roles
 
             # 角色信息用字典保存 key为玩家姓名 value为与roles等长的tensor
-            rolesTensor = {}
+            rolesTensor = []
             for player in record['playerRoles'].keys():
-                v = np.zeros(len(roles))
                 pos = 0
                 for role in roles:
                     if record['playerRoles'][player]['role'] == role:
-                        v[pos] = 1
+                        rolesTensor.append(pos)
                     pos += 1
-                rolesTensor[player] = list(v)
             simplifiedRecord['rolesTensor'] = rolesTensor
+
+            # 每种角色人数
+            rolesNum = np.zeros(len(roles)).tolist()
+            for k in rolesTensor:
+                rolesNum[k] += 1
+            # for k in range(record['numberOfPlayers']):
+            #     player = chr(97+k)
+            #     if player == 'a':
+            #         rolesNum = rolesTensor[player]
+            #     else:
+            #         rolesNum = list_add(rolesNum, rolesTensor[player])
+            simplifiedRecord['rolesNum'] = rolesNum
 
             # 任务记录
             History = record['missionHistory']

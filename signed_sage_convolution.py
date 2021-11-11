@@ -66,19 +66,22 @@ class SignedSAGEConvolution(torch.nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
+                 device,
                  norm=True,
                  norm_embed=True,
-                 bias=True):
+                 bias=True,
+                 ):
         super(SignedSAGEConvolution, self).__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.norm = norm
         self.norm_embed = norm_embed
-        self.weight = torch.nn.Parameter(torch.Tensor(self.in_channels, out_channels))
+        self.weight = torch.nn.Parameter(torch.FloatTensor(self.in_channels, out_channels)).to(device)
+        self.device = device
 
         if bias:
-            self.bias = torch.nn.Parameter(torch.Tensor(out_channels))
+            self.bias = torch.nn.Parameter(torch.FloatTensor(out_channels)).to(device)
         else:
             self.register_parameter("bias", None)
 
@@ -116,7 +119,7 @@ class SignedSAGEConvolution(torch.nn.Module):
         """
         # embedding_kind表示当前聚合的是正嵌入还是负嵌入
         # 保证了在每找到相应类型的角色时返回一个0向量
-        h = torch.zeros(1, size)
+        h = torch.zeros(size).to(self.device)  # 修改数据类型
         cnt = 0  # 某类角色人数
         for member in graph[role]:
             if member == player:
@@ -124,7 +127,8 @@ class SignedSAGEConvolution(torch.nn.Module):
             elif self.judge(player, member, graph, kind):
                 h += feature[member]
                 cnt += 1
-        h /= cnt
+        if cnt:     # 避免除0
+            h /= cnt
         return h
 
 
@@ -139,19 +143,19 @@ class SignedSAGEConvolutionBase(SignedSAGEConvolution):
         # kind用于区分当前进行的是正邻居聚合还是负邻居聚合, feature是存储每个节点的嵌入的列表
         for player in range(graph["numberOfPlayers"]):
             h_tmp = []
-            h_tmp.append(self.aggregate(player, "Members", graph, feature, kind, 7))
-            h_tmp.append(self.aggregate(player, "nonMembers", graph, feature, kind, 7))
-            h_tmp.append(self.aggregate(player, "Leader", graph, feature, kind, 7))
+            h_tmp.append(self.aggregate(player, "Members", graph, feature, kind, 6))
+            h_tmp.append(self.aggregate(player, "nonMembers", graph, feature, kind, 6))
+            h_tmp.append(self.aggregate(player, "Leader", graph, feature, kind, 6))
             h_0 = feature[player]
             # 将所有类型的连接成1个向量，自己的嵌入放在最后
             for i in h_tmp:
-                h_0 = torch.cat((i, h_0), 1)
-            h = torch.matmul(h_0, self.weight)
+                h_0 = torch.cat((i, h_0), 0)
+            h = torch.matmul(h_0.float().to(self.device), self.weight)
             if self.bias is not None:
                 h = h + self.bias
             # dim=-1表示最内层
             if self.norm_embed:
-                h = F.normalize(h, p=2, dim=-1)
+                h = F.normalize(h, p=2, dim=0)
             res.append(torch.tanh(h))
         # res是所有玩家嵌入的列表
         return res
@@ -190,11 +194,11 @@ class SignedSAGEConvolutionDeep(SignedSAGEConvolution):
                 h_tmp.append(self.aggregate(player, "Leader", graph, pos_feature, "negative", 32))  # 队长，负邻居，正嵌入
                 h_0 = neg_feature[player]
             for i in h_tmp:
-                h_0 = torch.cat((i, h_0), 1)
-            h = torch.matmul(h_0, self.weight)
+                h_0 = torch.cat((i, h_0), 0)
+            h = torch.matmul(h_0.float().to(self.device), self.weight)
             if self.bias is not None:
                 h = h + self.bias
             if self.norm_embed:
-                h = F.normalize(h, p=2, dim=-1)
+                h = F.normalize(h, p=2, dim=0)
             res.append(torch.tanh(h))
         return res

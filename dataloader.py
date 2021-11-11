@@ -2,6 +2,7 @@ import os
 import random
 import json
 import torch
+import torch.utils.data
 
 
 def collator(batch):
@@ -44,10 +45,10 @@ class Avalon(torch.utils.data.Dataset):
 
                 if cnt <= 0.8 * len(files):
                     self.train_data.append(gameData)
-                    self.train_label.append(gameData['rolesTensor'])
+                    self.train_label.append(torch.tensor(gameData['rolesTensor']))
                 else:
                     self.test_data.append(gameData)
-                    self.test_label.append(gameData['rolesTensor'])
+                    self.test_label.append(torch.tensor(gameData['rolesTensor']))
 
         print('Finished preprocessing the Avalon dataset...')
 
@@ -58,5 +59,6 @@ def get_loader(config, mode='train'):
                                               batch_size=config.batch_size,
                                               shuffle=(mode == 'train'),
                                               drop_last=True,
-                                              collate_fn=collator)
+                                              collate_fn=collator,
+                                              num_workers=0)
     return data_loader

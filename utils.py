@@ -13,7 +13,6 @@ def generate_graph(records):
     for record in records:
         graphs = []  # 存储一次游戏中所有图的列表
         game = record['gameProcess']  # 当前游戏
-        print(record['missionHistory'])
         playerNum = record["numberOfPlayers"]  # 玩家人数
         missionCount = 0
         for mission in game:  # 当前任务
@@ -23,7 +22,8 @@ def generate_graph(records):
                 voteResult = vote[1]  # 投票结果
                 # 存储当前投票结果对应的图的字典
                 voteGraph = {"numberOfPlayers": record["numberOfPlayers"], "positiveEdges": [], "negativeEdges": [],
-                             "Members": [], "nonMembers": [], "missionResult": record['missionHistory'][missionCount]}
+                             "Members": [], "nonMembers": [], "Leader": [], "missionResult": record["missionHistory"][missionCount],
+                             "rolesNum": record["rolesNum"]}
                 for k in range(playerNum):
                     player = role[k]
                     if player == "Member":  # 之后改一下数据集，让变量命名一致
@@ -31,7 +31,7 @@ def generate_graph(records):
                     elif player == "nonMember":
                         voteGraph["nonMembers"].append(k)
                     else:
-                        voteGraph["Leader"] = k
+                        voteGraph["Leader"].append(k)
                         if player == "MemberLeader":
                             voteGraph["Members"].append(k)
                         else:
@@ -48,7 +48,6 @@ def generate_graph(records):
                 missionGraphs.append(voteGraph)
             missionCount += 1
             graphs.append(missionGraphs)
-        print(graphs)
         G.append(graphs)
     return G
 
@@ -61,29 +60,33 @@ def initialize_embedding(size):
     mu, sigma = 0.5, 1
     lower, upper = 0, 1
     X = stats.truncnorm((lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma)  # 生成分布
-    h = X.rvs((1, size))  # 取样
+    h = X.rvs(size)  # 取样
     h = torch.from_numpy(h)
     return h
 
 
-def padding(p_size, e_size, mission_embedding_list):
+def padding(embedding_list, p_size, e_size, device):
     """
     对sgcn的输出结果进行padding
+    :param device: cpu或cuda
     :param p_size: 填充后一共有多少个tensor
     :param e_size: 每个tensor的大小
-    :param mission_embedding_list: 已有embedding的列表
+    :param embedding_list: 已有embedding的列表
     :return:
     """
-    mission_embedding = mission_embedding_list[0]
-    for i in range(1, p_size):
-        # 拼接已有tensor
-        if i < len(mission_embedding_list):
-            mission_embedding = torch.cat((mission_embedding, mission_embedding_list[i]), 0)
-        # padding
-        else:
-            padding_tensor = torch.full((1, e_size), -1)
-            mission_embedding = torch.cat((mission_embedding, padding_tensor), 0)
-    return mission_embedding
+    while len(embedding_list) < 25:
+        padding_tensor = torch.full([e_size], -1).float().to(device)
+        embedding_list.append(padding_tensor)
+    # embedding = embedding_list[0]
+    # for i in range(1, p_size):
+    #     # 拼接已有tensor
+    #     if i < len(embedding_list):
+    #         embedding = torch.cat((embedding, embedding_list[i]), 0)
+    #     # padding
+    #     else:
+    #         padding_tensor = torch.full((1, e_size), -1)
+    #         embedding = torch.cat((embedding, padding_tensor), 0)
+    return embedding_list
 
 
 def judge(h):
@@ -92,7 +95,35 @@ def judge(h):
     :param h: 待判断的tensor
     :return:
     """
-    for h_i in h:
-        if h_i != -1:
+    for i in range(h.size()[1]):
+        if h[0, i] != -1:
             return False
         return True
+    # for h_i in h:
+    #     if h_i != -1:
+    #         return False
+    #     return True
+
+
+def list_add(x, y):
+    """
+    列表相加
+    :param x: 列表1
+    :param y: 列表2
+    :return:
+    """
+    z = []
+    for i in range(len(x)):
+        z.append(x[i] + y[i])
+    return z
+
+
+def compute_rank(h):
+    h = h.numpy()
+    x = np.argsort(-h)
+    y = np.zeros(len(x))
+    rank = 1
+    for i in x:
+        y[i] = rank
+        rank += 1
+    return y
